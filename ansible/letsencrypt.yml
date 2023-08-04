@@ -1,0 +1,42 @@
+---
+- hosts: temple
+  become: yes
+  become_user: "{{ becomeuser }}"
+
+  tasks:
+    - name: Stop nginx
+      service:
+        name: nginx
+        state: stopped
+      tags:
+        - enroll
+
+    - name: Renew SSL certificate
+      command:
+        cmd: certbot certonly --standalone --preferred-challenges http {{ certbotdomains }}
+      tags:
+        - enroll
+
+    - name: Start nginx
+      service:
+        name: nginx
+        state: started
+      tags:
+        - enroll
+
+    - name: Check OpenSSL certificate dates
+      command:
+        cmd: openssl x509 -in {{ openssl_cert }} -dates -noout
+      #openssl_certificate_info:
+      #  path: {{ openssl_cert }}
+      register: result
+      tags:
+        - enroll
+        - test
+
+    - name: Dump result
+      debug:
+        var: result.stdout_lines
+      tags:
+        - enroll
+        - test
